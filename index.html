@@ -338,35 +338,54 @@
         <input type="file" id="logoInput" accept="image/*">
       </div>
 
+      <div class="logo-drop" id="photoDrop" style="margin-top:12px;">
+        <div class="thumb" id="photoThumb">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B0AA9A" stroke-width="1.6"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>
+        </div>
+        <div class="copy">
+          <strong>Upload profile photo</strong>
+          <span>Optional — leave blank to show your initials</span>
+        </div>
+        <input type="file" id="photoInput" accept="image/*">
+      </div>
+
+      <div class="field" id="colorField" style="margin-top:20px;">
+        <label for="inColor">Card color</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="color" id="inColor" value="#B8862C" style="width:44px; height:40px; padding:2px; border:1px solid var(--line); border-radius:8px; cursor:pointer; background:var(--paper);">
+          <span style="font-size:12.5px; color:var(--muted);" id="colorHint">Auto-detected from your logo — adjust if it's not quite right</span>
+        </div>
+      </div>
+
       <div class="field" style="margin-top:20px;">
         <label for="inName">Full name</label>
-        <input id="inName" placeholder="Areej Qawas">
+        <input id="inName">
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="inTitle">Job title</label>
-          <input id="inTitle" placeholder="Country Manager">
+          <input id="inTitle">
         </div>
         <div class="field">
           <label for="inCompany">Company name</label>
-          <input id="inCompany" placeholder="Viwell">
+          <input id="inCompany">
         </div>
       </div>
 
       <div class="field">
         <label for="inEmail">Business email</label>
-        <input id="inEmail" type="email" placeholder="areej@viwell.com">
+        <input id="inEmail" type="email">
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="inPhone">Mobile number</label>
-          <input id="inPhone" placeholder="+966 53 838 3209">
+          <input id="inPhone">
         </div>
         <div class="field">
           <label for="inLocation">Location</label>
-          <input id="inLocation" placeholder="Riyadh, Saudi Arabia">
+          <input id="inLocation">
         </div>
       </div>
 
@@ -378,15 +397,16 @@
         <div class="card" id="card">
           <div class="card-banner" id="cardBanner">
             <img id="logoImg" style="display:none;">
-            <span class="mono" id="monoBanner">Your Logo</span>
+            <span class="mono" id="monoBanner"></span>
           </div>
           <div class="card-avatar" id="cardAvatar">
-            <span class="mono-sm" id="monoAvatar">A</span>
+            <img id="photoImg" style="display:none;">
+            <span class="mono-sm" id="monoAvatar"></span>
           </div>
           <div class="card-body">
-            <h2 id="pName">Your Name</h2>
-            <p class="role" id="pTitle">Job title</p>
-            <p class="org" id="pCompany">Company name</p>
+            <h2 id="pName"></h2>
+            <p class="role" id="pTitle"></p>
+            <p class="org" id="pCompany"></p>
 
             <div class="contact-row" id="rowEmail" style="display:none;">
               <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l9 6 9-6"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg></div>
@@ -423,15 +443,16 @@
       <div class="card" id="vCard">
         <div class="card-banner" id="vBanner">
           <img id="vLogoImg" style="display:none;">
-          <span class="mono" id="vMonoBanner">Your Logo</span>
+          <span class="mono" id="vMonoBanner"></span>
         </div>
         <div class="card-avatar" id="vAvatar">
-          <span class="mono-sm" id="vMonoAvatar">A</span>
+          <img id="vPhotoImg" style="display:none;">
+          <span class="mono-sm" id="vMonoAvatar"></span>
         </div>
         <div class="card-body">
-          <h2 id="vName">Name</h2>
-          <p class="role" id="vTitle">Title</p>
-          <p class="org" id="vCompany">Company</p>
+          <h2 id="vName"></h2>
+          <p class="role" id="vTitle"></p>
+          <p class="org" id="vCompany"></p>
           <div class="contact-row" id="vRowEmail" style="display:none;">
             <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l9 6 9-6"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg></div>
             <div class="text"><strong id="vEmail"></strong><span>Work</span></div>
@@ -456,7 +477,7 @@
 
 <script>
 (function(){
-  const state = { name:'', title:'', company:'', email:'', phone:'', location:'', logo:null, accent:'#B8862C', accentText:'#FFFFFF' };
+  const state = { name:'', title:'', company:'', email:'', phone:'', location:'', logo:null, photo:null, accent:'#B8862C', accentText:'#FFFFFF' };
 
   const ids = ['inName','inTitle','inCompany','inEmail','inPhone','inLocation'];
   const map = { inName:'name', inTitle:'title', inCompany:'company', inEmail:'email', inPhone:'phone', inLocation:'location' };
@@ -483,6 +504,8 @@
         const color = extractAccentColor(img);
         state.accent = color;
         state.accentText = contrastText(color);
+        document.getElementById('inColor').value = rgbStrToHex(color);
+        document.getElementById('colorHint').textContent = "Auto-detected from your logo — adjust if it's not quite right";
         document.getElementById('logoThumb').innerHTML = '';
         const thumbImg = document.createElement('img');
         thumbImg.src = state.logo;
@@ -490,6 +513,25 @@
         render();
       };
       img.src = state.logo;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---- Profile photo upload (optional — falls back to initials) ----
+  const photoDrop = document.getElementById('photoDrop');
+  const photoInput = document.getElementById('photoInput');
+  photoDrop.addEventListener('click', ()=> photoInput.click());
+  photoInput.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      state.photo = ev.target.result;
+      document.getElementById('photoThumb').innerHTML = '';
+      const thumbImg = document.createElement('img');
+      thumbImg.src = state.photo;
+      document.getElementById('photoThumb').appendChild(thumbImg);
+      render();
     };
     reader.readAsDataURL(file);
   });
@@ -516,7 +558,10 @@
     for(const k in buckets){ if(buckets[k]>bestScore){ bestScore=buckets[k]; best=k; } }
     if(!best){
       let r=0,g=0,b=0,n=0;
-      for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
+      for(let i=0;i<data.length;i+=4){
+        if(data[i+3] < 128) continue; // fixed: skip transparent pixels here too
+        r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++;
+      }
       if(!n) return '#B8862C';
       return `rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})`;
     }
@@ -524,12 +569,33 @@
     return `rgb(${r},${g},${b})`;
   }
 
-  function contrastText(rgbStr){
-    const nums = rgbStr.match(/\d+(\.\d+)?/g).map(Number);
-    const [r,g,b] = nums;
+  function contrastText(colorStr){
+    const [r,g,b] = colorToRgb(colorStr);
     const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
     return lum > 0.62 ? '#17181C' : '#FFFFFF';
   }
+
+  function colorToRgb(colorStr){
+    if(colorStr.startsWith('#')){
+      const hex = colorStr.replace('#','');
+      return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+    }
+    return colorStr.match(/\d+(\.\d+)?/g).map(Number);
+  }
+
+  function rgbStrToHex(rgbStr){
+    const [r,g,b] = colorToRgb(rgbStr);
+    return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+
+  // ---- Manual color override ----
+  const colorInput = document.getElementById('inColor');
+  colorInput.addEventListener('input', e=>{
+    state.accent = e.target.value;
+    state.accentText = contrastText(state.accent);
+    document.getElementById('colorHint').textContent = 'Manually set — feel free to keep adjusting';
+    render();
+  });
 
   // ---- Render editor preview ----
   function initials(){
@@ -537,16 +603,16 @@
     if(n) return n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const c = state.company.trim();
     if(c) return c[0].toUpperCase();
-    return 'A';
+    return '';
   }
 
   function render(){
     document.documentElement.style.setProperty('--accent', state.accent);
     document.documentElement.style.setProperty('--accent-text', state.accentText);
 
-    document.getElementById('pName').textContent = state.name || 'Your Name';
-    document.getElementById('pTitle').textContent = state.title || 'Job title';
-    document.getElementById('pCompany').textContent = state.company || 'Company name';
+    document.getElementById('pName').textContent = state.name;
+    document.getElementById('pTitle').textContent = state.title;
+    document.getElementById('pCompany').textContent = state.company;
 
     toggleRow('rowEmail','pEmail',state.email);
     toggleRow('rowPhone','pPhone',state.phone);
@@ -560,9 +626,18 @@
     } else {
       logoImg.style.display='none';
       monoBanner.style.display='block';
-      monoBanner.textContent = state.company || 'Your Logo';
+      monoBanner.textContent = state.company;
     }
-    document.getElementById('monoAvatar').textContent = initials();
+    const photoImg = document.getElementById('photoImg');
+    const monoAvatar = document.getElementById('monoAvatar');
+    if(state.photo){
+      photoImg.src = state.photo; photoImg.style.display='block';
+      monoAvatar.style.display='none';
+    } else {
+      photoImg.style.display='none';
+      monoAvatar.style.display='block';
+      monoAvatar.textContent = initials();
+    }
   }
 
   function toggleRow(rowId, textId, value){
@@ -603,14 +678,32 @@
     return decodeURIComponent(atob(str).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
   }
 
-  document.getElementById('copyLinkBtn').addEventListener('click', ()=>{
+  const copyBtn = document.getElementById('copyLinkBtn');
+  copyBtn.addEventListener('click', ()=>{
     const payload = JSON.stringify(state);
     const encoded = b64EncodeUnicode(payload);
     const url = location.origin + location.pathname + '#c=' + encoded;
     const out = document.getElementById('linkOut');
     out.value = url;
-    navigator.clipboard && navigator.clipboard.writeText(url).catch(()=>{});
-    out.select();
+
+    const showCopied = ()=>{
+      const original = copyBtn.textContent;
+      copyBtn.textContent = 'Copied to clipboard';
+      setTimeout(()=>{ copyBtn.textContent = original; }, 1800);
+    };
+    const manualFallback = ()=>{
+      out.removeAttribute('readonly');
+      out.focus(); out.select();
+      try{ document.execCommand('copy'); showCopied(); }
+      catch(err){ /* selection is at least ready for a manual Ctrl+C */ }
+      out.setAttribute('readonly','');
+    };
+
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(showCopied).catch(manualFallback);
+    } else {
+      manualFallback();
+    }
   });
 
   // ---- Mobile tabs ----
@@ -654,10 +747,18 @@
       vLogoImg.src = s.logo; vLogoImg.style.display='block';
       vMonoBanner.style.display='none';
     } else {
-      vMonoBanner.textContent = s.company || 'Card Studio';
+      vMonoBanner.textContent = s.company || '';
     }
-    const n = (s.name||'').trim();
-    document.getElementById('vMonoAvatar').textContent = n ? n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() : ((s.company||'A')[0].toUpperCase());
+    const vPhotoImg = document.getElementById('vPhotoImg');
+    const vMonoAvatar = document.getElementById('vMonoAvatar');
+    if(s.photo){
+      vPhotoImg.src = s.photo; vPhotoImg.style.display='block';
+      vMonoAvatar.style.display='none';
+    } else {
+      const n = (s.name||'').trim();
+      const c = (s.company||'').trim();
+      vMonoAvatar.textContent = n ? n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() : (c ? c[0].toUpperCase() : '');
+    }
 
     document.getElementById('vSaveBtn').addEventListener('click', ()=> downloadVcard(s));
     document.getElementById('backLink').addEventListener('click', (e)=>{
