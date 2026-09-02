@@ -421,8 +421,10 @@
 
       <div class="share-box">
         <button id="copyLinkBtn">Copy shareable link</button>
+        <button id="copyCompactBtn" style="margin-top:8px;">Copy compact link (no image, for QR codes)</button>
         <input class="link-out" id="linkOut" readonly value="Your link will appear here">
-        <p class="share-note">This file is self-contained: host it anywhere (a website folder, GitHub Pages, Netlify Drop) and the link this button builds will open straight to this exact card.</p>
+        <p class="share-note" id="linkLenNote"></p>
+        <p class="share-note">Logos and photos are auto-shrunk to keep links reasonably short. If a link is still too long for a URL shortener or QR generator, use the compact option — it drops the image and shows your initials instead, keeping everything else.</p>
       </div>
     </section>
   </div>
@@ -489,21 +491,22 @@
     if(!file) return;
     const reader = new FileReader();
     reader.onload = ev=>{
-      state.logo = ev.target.result;
+      const originalDataUrl = ev.target.result;
       const img = new Image();
-      img.onload = ()=>{
+      img.onload = async ()=>{
         const color = extractAccentColor(img);
         state.accent = color;
         state.accentText = contrastText(color);
         document.getElementById('inColor').value = rgbStrToHex(color);
         document.getElementById('colorHint').textContent = "Auto-detected from your logo — adjust if it's not quite right";
+        state.logo = await resizeImageDataUrl(originalDataUrl, 180, 'image/png');
         document.getElementById('logoThumb').innerHTML = '';
         const thumbImg = document.createElement('img');
         thumbImg.src = state.logo;
         document.getElementById('logoThumb').appendChild(thumbImg);
         render();
       };
-      img.src = state.logo;
+      img.src = originalDataUrl;
     };
     reader.readAsDataURL(file);
   });
@@ -516,8 +519,8 @@
     const file = e.target.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = ev=>{
-      state.photo = ev.target.result;
+    reader.onload = async ev=>{
+      state.photo = await resizeImageDataUrl(ev.target.result, 180, 'image/jpeg', 0.72);
       document.getElementById('photoThumb').innerHTML = '';
       const thumbImg = document.createElement('img');
       thumbImg.src = state.photo;
@@ -526,6 +529,27 @@
     };
     reader.readAsDataURL(file);
   });
+
+  // ---- Shrink an image before it goes into a shareable link ----
+  function resizeImageDataUrl(dataUrl, maxDim, mime, quality){
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let { width, height } = img;
+        if(width > height){
+          if(width > maxDim){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+        } else {
+          if(height > maxDim){ width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(mime, quality));
+      };
+      img.onerror = ()=> resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
 
   function extractAccentColor(img){
     const canvas = document.createElement('canvas');
@@ -669,18 +693,21 @@
     return decodeURIComponent(atob(str).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
   }
 
-  const copyBtn = document.getElementById('copyLinkBtn');
-  copyBtn.addEventListener('click', ()=>{
-    const payload = JSON.stringify(state);
+  function buildLink(stateForLink){
+    const payload = JSON.stringify(stateForLink);
     const encoded = b64EncodeUnicode(payload);
-    const url = location.origin + location.pathname + '#c=' + encoded;
+    return location.origin + location.pathname + '#c=' + encoded;
+  }
+
+  function copyToClipboard(url, btn){
     const out = document.getElementById('linkOut');
     out.value = url;
+    document.getElementById('linkLenNote').textContent = `Link length: ${url.length.toLocaleString()} characters`;
 
     const showCopied = ()=>{
-      const original = copyBtn.textContent;
-      copyBtn.textContent = 'Copied to clipboard';
-      setTimeout(()=>{ copyBtn.textContent = original; }, 1800);
+      const original = btn.textContent;
+      btn.textContent = 'Copied to clipboard';
+      setTimeout(()=>{ btn.textContent = original; }, 1800);
     };
     const manualFallback = ()=>{
       out.removeAttribute('readonly');
@@ -695,6 +722,15 @@
     } else {
       manualFallback();
     }
+  }
+
+  const copyBtn = document.getElementById('copyLinkBtn');
+  copyBtn.addEventListener('click', ()=> copyToClipboard(buildLink(state), copyBtn));
+
+  const copyCompactBtn = document.getElementById('copyCompactBtn');
+  copyCompactBtn.addEventListener('click', ()=>{
+    const compact = Object.assign({}, state, { logo:null, photo:null });
+    copyToClipboard(buildLink(compact), copyCompactBtn);
   });
 
   // ---- Mobile tabs ----
